@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+output/
+# Keep data/breadth_history.csv as it serves as the history database for the script
