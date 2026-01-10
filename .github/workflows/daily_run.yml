@@ -1,0 +1,54 @@
+name: Daily Market Breadth Analysis
+
+on:
+  schedule:
+    # 19:00 GMT+1 is 18:00 UTC
+    # Runs at 18:00 UTC every Monday through Friday
+    - cron: '0 18 * * 1-5'
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to push changes to the repo
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip' # Caches dependencies
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Market Breadth Analysis
+        env:
+          GMAIL_SENDING_EMAIL: ${{ secrets.GMAIL_SENDING_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL_1: ${{ secrets.RECIPIENT_EMAIL_1 }}
+          RECIPIENT_EMAIL_2: ${{ secrets.RECIPIENT_EMAIL_2 }}
+        run: |
+          python run.py
+
+      - name: Commit and Push changes
+        run: |
+          # Configure git
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          
+          # Check if there are changes to the data file
+          if [[ -n $(git status --porcelain data/breadth_history.csv) ]]; then
+            echo "Changes detected. Committing..."
+            git add data/breadth_history.csv
+            git commit -m "Auto-update market breadth history [skip ci]"
+            git push
+          else
+            echo "No changes to data/breadth_history.csv detected."
+          fi
