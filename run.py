@@ -118,6 +118,107 @@ def calculate_metrics_for_date(price_data, date_idx):
         'pct_above_200': round(float(above_200.sum() / total) * 100, 2)
     }
 
+def detect_crossovers(price_data, prev_date_idx, curr_date_idx, sma_periods=[50, 100, 200]):
+    """
+    Detects crossover events between two consecutive dates.
+    
+    Returns dict with structure:
+    {
+        50: {'bullish': [{'ticker': 'AAPL', 'close': 185.50, 'sma_value': 182.30}, ...], 'bearish': [...]},
+        100: {...},
+        200: {...}
+    }
+    """
+    if prev_date_idx < 0 or curr_date_idx >= len(price_data):
+        return {p: {'bullish': [], 'bearish': []} for p in sma_periods}
+    
+    results = {}
+    
+    for period in sma_periods:
+        if len(price_data) < period:
+            results[period] = {'bullish': [], 'bearish': []}
+            continue
+        
+        # Calculate SMA for both days
+        sma_prev = price_data.iloc[:prev_date_idx+1].rolling(window=period).mean().iloc[-1]
+        sma_curr = price_data.iloc[:curr_date_idx+1].rolling(window=period).mean().iloc[-1]
+        
+        price_prev = price_data.iloc[prev_date_idx]
+        price_curr = price_data.iloc[curr_date_idx]
+        
+        bullish = []
+        bearish = []
+        
+        for ticker in price_data.columns:
+            try:
+                prev_price = price_prev[ticker]
+                curr_price = price_curr[ticker]
+                prev_sma = sma_prev[ticker]
+                curr_sma = sma_curr[ticker]
+                
+                # Skip if any NaN
+                if pd.isna(prev_price) or pd.isna(curr_price) or pd.isna(prev_sma) or pd.isna(curr_sma):
+                    continue
+                
+                was_below = prev_price < prev_sma
+                was_above = prev_price > prev_sma
+                now_below = curr_price < curr_sma
+                now_above = curr_price > curr_sma
+                
+                if was_below and now_above:
+                    bullish.append({
+                        'ticker': ticker,
+                        'close': round(float(curr_price), 2),
+                        'sma_value': round(float(curr_sma), 2)
+                    })
+                elif was_above and now_below:
+                    bearish.append({
+                        'ticker': ticker,
+                        'close': round(float(curr_price), 2),
+                        'sma_value': round(float(curr_sma), 2)
+                    })
+            except Exception:
+                continue
+        
+        results[period] = {'bullish': bullish, 'bearish': bearish}
+    
+    return results
+
+def save_crossover_history(crossovers_sp500, crossovers_nasdaq, date_str):
+    """
+    Appends crossover events to JSON file with date as key.
+    """
+    history_file = DATA_DIR / "crossover_history.json"
+    
+    # Load existing history
+    if history_file.exists():
+        try:
+            with open(history_file, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        except Exception:
+            history = {}
+    else:
+        history = {}
+    
+    # Format crossovers for storage (convert int keys to strings for JSON)
+    def format_crossovers(crossovers):
+        return {
+            str(period): data for period, data in crossovers.items()
+        }
+    
+    # Add today's crossovers
+    history[date_str] = {
+        'sp500': format_crossovers(crossovers_sp500),
+        'nasdaq': format_crossovers(crossovers_nasdaq)
+    }
+    
+    # Save back
+    with open(history_file, 'w', encoding='utf-8') as f:
+        json.dump(history, f, indent=2)
+    
+    print(f"Crossover history saved to {history_file}")
+    return history[date_str]
+
 def update_history_file(new_records):
     """Appends new records to CSV, ensuring no duplicates."""
     try:
@@ -148,8 +249,8 @@ def update_history_file(new_records):
         print(f"Error updating history file: {e}")
         return pd.DataFrame()
 
-def generate_html_dashboard(history_df, sp500_current, nasdaq_current):
-    """Generates the HTML dashboard with history charts + todays active metrics."""
+def generate_html_dashboard(history_df, sp500_current, nasdaq_current, crossovers=None):
+    """Generates the HTML dashboard with history charts + todays active metrics + crossover table."""
     # Convert history for JS
     dates = history_df['date'].tolist()
     
@@ -189,6 +290,9 @@ def generate_html_dashboard(history_df, sp500_current, nasdaq_current):
         dummy = ("—", "#888")
         sp_d50 = sp_d100 = sp_d200 = dummy
         nas_d50 = nas_d100 = nas_d200 = dummy
+
+    # Prepare crossover data for JS embedding
+    crossover_json = json.dumps(crossovers) if crossovers else "null"
 
     html_content = f"""
 <!DOCTYPE html>
@@ -276,6 +380,205 @@ def generate_html_dashboard(history_df, sp500_current, nasdaq_current):
         .c-100 {{ color: #2196f3; }}  /* Blue */
         .c-200 {{ color: #ffc107; }}  /* Amber */
         
+        /* Crossover Section Styles */
+        .crossover-section {{
+            margin-top: 40px;
+        }}
+        .section-title {{
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .collapsible-header {{
+            background: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+            margin-bottom: 15px;
+        }}
+        .collapsible-header:hover {{
+            background: #252525;
+            border-color: #444;
+        }}
+        .collapsible-header .toggle-icon {{
+            transition: transform 0.3s;
+            font-size: 1.2em;
+        }}
+        .collapsible-header.open .toggle-icon {{
+            transform: rotate(180deg);
+        }}
+        .collapsible-content {{
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }}
+        .collapsible-content.open {{
+            max-height: 2000px;
+        }}
+        .summary-stats {{
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }}
+        .summary-stat {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+        }}
+        .summary-stat .count {{
+            font-weight: bold;
+            font-size: 1.1em;
+        }}
+        .bullish {{ color: var(--success-color); }}
+        .bearish {{ color: var(--danger-color); }}
+        
+        /* Crossover Filters */
+        .crossover-controls {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }}
+        .filter-group {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .filter-label {{
+            color: var(--text-muted);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .filter-select {{
+            background: #333;
+            color: #ccc;
+            border: 1px solid #444;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+        }}
+        .filter-select:hover {{
+            background: #3a3a3a;
+        }}
+        
+        /* Crossover Table */
+        .crossover-table-container {{
+            overflow-x: auto;
+        }}
+        .crossover-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }}
+        .crossover-table th {{
+            background: #252525;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 0.5px;
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }}
+        .crossover-table td {{
+            padding: 12px 15px;
+            border-bottom: 1px solid #2a2a2a;
+            vertical-align: middle;
+        }}
+        .crossover-table tr:hover td {{
+            background: #1a1a1a;
+        }}
+        .ticker-cell {{
+            font-weight: 600;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }}
+        .direction-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }}
+        .direction-badge.bullish {{
+            background: rgba(76, 175, 80, 0.15);
+            color: var(--success-color);
+        }}
+        .direction-badge.bearish {{
+            background: rgba(255, 82, 82, 0.15);
+            color: var(--danger-color);
+        }}
+        .sma-badge {{
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }}
+        .sma-badge.sma-50 {{ background: rgba(76, 175, 80, 0.15); color: #4caf50; }}
+        .sma-badge.sma-100 {{ background: rgba(33, 150, 243, 0.15); color: #2196f3; }}
+        .sma-badge.sma-200 {{ background: rgba(255, 193, 7, 0.15); color: #ffc107; }}
+        .index-badge {{
+            font-size: 0.8em;
+            color: var(--text-muted);
+        }}
+        .price-cell {{
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.85em;
+        }}
+        .no-crossovers {{
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-style: italic;
+        }}
+        
+        /* Responsive Cards for Mobile */
+        @media (max-width: 768px) {{
+            .grid {{
+                grid-template-columns: 1fr;
+            }}
+            .crossover-table {{ display: none; }}
+            .crossover-cards {{ display: block; }}
+        }}
+        @media (min-width: 769px) {{
+            .crossover-cards {{ display: none; }}
+        }}
+        .crossover-card {{
+            background: #252525;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+        }}
+        .crossover-card-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }}
+        .crossover-card-body {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }}
+        
     </style>
 </head>
 <body>
@@ -343,6 +646,75 @@ def generate_html_dashboard(history_df, sp500_current, nasdaq_current):
                         <span class="stat-val c-200">{nasdaq_current['pct_above_200']}%</span>
                         <span class="stat-change" style="color: {nas_d200[1]}">{nas_d200[0]}</span>
                         <span class="stat-lbl">Above SMA 200</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Crossover Section -->
+        <div class="crossover-section" id="crossoverSection">
+            <div class="collapsible-header" onclick="toggleCrossovers()">
+                <div>
+                    <span style="font-size: 1.1em; font-weight: 500;">📊 Today's SMA Crossovers</span>
+                    <div class="summary-stats" id="crossoverSummary">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="collapsible-content" id="crossoverContent">
+                <div class="card">
+                    <div class="crossover-controls">
+                        <div class="filter-group">
+                            <span class="filter-label">Index</span>
+                            <select class="filter-select" id="indexFilter" onchange="filterCrossovers()">
+                                <option value="all">All</option>
+                                <option value="sp500">S&P 500</option>
+                                <option value="nasdaq">Nasdaq 100</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <span class="filter-label">SMA</span>
+                            <select class="filter-select" id="smaFilter" onchange="filterCrossovers()">
+                                <option value="all">All</option>
+                                <option value="50">SMA 50</option>
+                                <option value="100">SMA 100</option>
+                                <option value="200">SMA 200</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <span class="filter-label">Direction</span>
+                            <select class="filter-select" id="directionFilter" onchange="filterCrossovers()">
+                                <option value="all">All</option>
+                                <option value="bullish">↑ Bullish</option>
+                                <option value="bearish">↓ Bearish</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="margin-left: auto;">
+                            <span id="filteredCount" style="color: var(--text-muted); font-size: 0.9em;"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="crossover-table-container">
+                        <table class="crossover-table" id="crossoverTable">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Direction</th>
+                                    <th>SMA</th>
+                                    <th>Index</th>
+                                    <th>Close</th>
+                                    <th>SMA Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crossoverTableBody">
+                                <!-- Filled by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="crossover-cards" id="crossoverCards">
+                        <!-- Filled by JS for mobile -->
                     </div>
                 </div>
             </div>
@@ -484,6 +856,148 @@ def generate_html_dashboard(history_df, sp500_current, nasdaq_current):
                 if(btn.dataset.mode === mode) btn.classList.add('active');
             }});
         }}
+        
+        // ========== Crossover Section ==========
+        const crossoverData = {crossover_json};
+        let allCrossovers = [];
+        
+        // Flatten crossover data for filtering
+        function initCrossovers() {{
+            if (!crossoverData) {{
+                document.getElementById('crossoverSection').style.display = 'none';
+                return;
+            }}
+            
+            allCrossovers = [];
+            
+            ['sp500', 'nasdaq'].forEach(index => {{
+                if (!crossoverData[index]) return;
+                ['50', '100', '200'].forEach(sma => {{
+                    if (!crossoverData[index][sma]) return;
+                    ['bullish', 'bearish'].forEach(direction => {{
+                        const items = crossoverData[index][sma][direction] || [];
+                        items.forEach(item => {{
+                            allCrossovers.push({{
+                                ticker: item.ticker,
+                                close: item.close,
+                                smaValue: item.sma_value,
+                                direction: direction,
+                                sma: sma,
+                                index: index
+                            }});
+                        }});
+                    }});
+                }});
+            }});
+            
+            if (allCrossovers.length === 0) {{
+                document.getElementById('crossoverSection').style.display = 'none';
+                return;
+            }}
+            
+            updateSummary();
+            filterCrossovers();
+        }}
+        
+        function updateSummary() {{
+            const bullishCount = allCrossovers.filter(c => c.direction === 'bullish').length;
+            const bearishCount = allCrossovers.filter(c => c.direction === 'bearish').length;
+            
+            document.getElementById('crossoverSummary').innerHTML = `
+                <div class="summary-stat">
+                    <span class="count bullish">${{bullishCount}}</span>
+                    <span>Bullish ↑</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="count bearish">${{bearishCount}}</span>
+                    <span>Bearish ↓</span>
+                </div>
+            `;
+        }}
+        
+        function toggleCrossovers() {{
+            const header = document.querySelector('.collapsible-header');
+            const content = document.getElementById('crossoverContent');
+            header.classList.toggle('open');
+            content.classList.toggle('open');
+        }}
+        
+        function filterCrossovers() {{
+            const indexFilter = document.getElementById('indexFilter').value;
+            const smaFilter = document.getElementById('smaFilter').value;
+            const directionFilter = document.getElementById('directionFilter').value;
+            
+            let filtered = allCrossovers;
+            
+            if (indexFilter !== 'all') {{
+                filtered = filtered.filter(c => c.index === indexFilter);
+            }}
+            if (smaFilter !== 'all') {{
+                filtered = filtered.filter(c => c.sma === smaFilter);
+            }}
+            if (directionFilter !== 'all') {{
+                filtered = filtered.filter(c => c.direction === directionFilter);
+            }}
+            
+            // Sort: bullish first, then by ticker
+            filtered.sort((a, b) => {{
+                if (a.direction !== b.direction) return a.direction === 'bullish' ? -1 : 1;
+                return a.ticker.localeCompare(b.ticker);
+            }});
+            
+            renderTable(filtered);
+            renderCards(filtered);
+            
+            document.getElementById('filteredCount').textContent = 
+                `Showing ${{filtered.length}} of ${{allCrossovers.length}}`;
+        }}
+        
+        function renderTable(data) {{
+            const tbody = document.getElementById('crossoverTableBody');
+            
+            if (data.length === 0) {{
+                tbody.innerHTML = '<tr><td colspan="6" class="no-crossovers">No crossovers match your filters</td></tr>';
+                return;
+            }}
+            
+            tbody.innerHTML = data.map(c => `
+                <tr data-index="${{c.index}}" data-sma="${{c.sma}}" data-direction="${{c.direction}}">
+                    <td class="ticker-cell">${{c.ticker}}</td>
+                    <td><span class="direction-badge ${{c.direction}}">${{c.direction === 'bullish' ? '↑' : '↓'}} ${{c.direction}}</span></td>
+                    <td><span class="sma-badge sma-${{c.sma}}">SMA ${{c.sma}}</span></td>
+                    <td class="index-badge">${{c.index === 'sp500' ? 'S&P 500' : 'Nasdaq 100'}}</td>
+                    <td class="price-cell">${{c.close.toFixed(2)}}</td>
+                    <td class="price-cell">${{c.smaValue.toFixed(2)}}</td>
+                </tr>
+            `).join('');
+        }}
+        
+        function renderCards(data) {{
+            const container = document.getElementById('crossoverCards');
+            
+            if (data.length === 0) {{
+                container.innerHTML = '<div class="no-crossovers">No crossovers match your filters</div>';
+                return;
+            }}
+            
+            container.innerHTML = data.map(c => `
+                <div class="crossover-card">
+                    <div class="crossover-card-header">
+                        <span class="ticker-cell">${{c.ticker}}</span>
+                        <span class="direction-badge ${{c.direction}}">${{c.direction === 'bullish' ? '↑' : '↓'}} ${{c.direction}}</span>
+                    </div>
+                    <div class="crossover-card-body">
+                        <span class="sma-badge sma-${{c.sma}}">SMA ${{c.sma}}</span>
+                        <span>${{c.index === 'sp500' ? 'S&P 500' : 'Nasdaq 100'}}</span>
+                        <span>Close: ${{c.close.toFixed(2)}}</span>
+                        <span>SMA: ${{c.smaValue.toFixed(2)}}</span>
+                    </div>
+                </div>
+            `).join('');
+        }}
+        
+        // Initialize on page load
+        initCrossovers();
     </script>
 </body>
 </html>
@@ -642,6 +1156,22 @@ def main():
         sp_metrics = calculate_metrics_for_date(sp500_data, len(sp500_data)-1)
         nas_metrics = calculate_metrics_for_date(nasdaq_data, len(nasdaq_data)-1)
         
+        # Detect crossovers (compare yesterday to today)
+        crossovers_sp500 = None
+        crossovers_nasdaq = None
+        if len(sp500_data) >= 2 and len(nasdaq_data) >= 2:
+            print("Detecting crossovers...")
+            crossovers_sp500 = detect_crossovers(sp500_data, len(sp500_data)-2, len(sp500_data)-1)
+            crossovers_nasdaq = detect_crossovers(nasdaq_data, len(nasdaq_data)-2, len(nasdaq_data)-1)
+            
+            # Save to JSON history
+            save_crossover_history(crossovers_sp500, crossovers_nasdaq, date_str)
+            
+            # Count and log
+            total_bullish = sum(len(crossovers_sp500[p]['bullish']) + len(crossovers_nasdaq[p]['bullish']) for p in [50, 100, 200])
+            total_bearish = sum(len(crossovers_sp500[p]['bearish']) + len(crossovers_nasdaq[p]['bearish']) for p in [50, 100, 200])
+            print(f"Found {total_bullish} bullish and {total_bearish} bearish crossovers")
+        
         if sp_metrics and nas_metrics:
             record = {'date': date_str}
             for k, v in sp_metrics.items(): record[f'sp500_{k}'] = v
@@ -652,12 +1182,20 @@ def main():
             print("Failed to calculate today's metrics")
 
     # Generate Output
+    crossovers_for_dashboard = None
     if not history_df.empty:
         # Get latest records for potential "Diff" calculation
         current_sp = {k.replace('sp500_',''):v for k,v in history_df.iloc[-1].items() if 'sp500' in k}
         current_nas = {k.replace('nasdaq_',''):v for k,v in history_df.iloc[-1].items() if 'nasdaq' in k}
         
-        html = generate_html_dashboard(history_df, current_sp, current_nas)
+        # Prepare crossover data for dashboard (only for daily runs, not backfill)
+        if 'crossovers_sp500' in dir() and crossovers_sp500 and crossovers_nasdaq:
+            crossovers_for_dashboard = {
+                'sp500': {str(k): v for k, v in crossovers_sp500.items()},
+                'nasdaq': {str(k): v for k, v in crossovers_nasdaq.items()}
+            }
+        
+        html = generate_html_dashboard(history_df, current_sp, current_nas, crossovers_for_dashboard)
         
         if not args.no_email:
             send_email(REPORT_FILE, history_df)

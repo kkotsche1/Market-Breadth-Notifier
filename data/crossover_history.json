@@ -1,0 +1,418 @@
+{
+  "2026-01-13": {
+    "sp500": {
+      "50": {
+        "bullish": [
+          {
+            "ticker": "AWK",
+            "close": 130.3,
+            "sma_value": 129.94
+          },
+          {
+            "ticker": "CPRT",
+            "close": 39.92,
+            "sma_value": 39.85
+          },
+          {
+            "ticker": "DPZ",
+            "close": 415.95,
+            "sma_value": 414.77
+          },
+          {
+            "ticker": "ES",
+            "close": 68.75,
+            "sma_value": 68.24
+          },
+          {
+            "ticker": "GILD",
+            "close": 122.6,
+            "sma_value": 122.46
+          },
+          {
+            "ticker": "GLW",
+            "close": 87.88,
+            "sma_value": 86.49
+          },
+          {
+            "ticker": "MGM",
+            "close": 34.82,
+            "sma_value": 34.66
+          },
+          {
+            "ticker": "MMM",
+            "close": 167.94,
+            "sma_value": 165.57
+          },
+          {
+            "ticker": "NI",
+            "close": 42.39,
+            "sma_value": 42.3
+          },
+          {
+            "ticker": "NSC",
+            "close": 288.73,
+            "sma_value": 288.44
+          },
+          {
+            "ticker": "ORLY",
+            "close": 95.6,
+            "sma_value": 95.53
+          },
+          {
+            "ticker": "TEL",
+            "close": 235.4,
+            "sma_value": 233.5
+          },
+          {
+            "ticker": "VST",
+            "close": 172.58,
+            "sma_value": 171.7
+          },
+          {
+            "ticker": "VZ",
+            "close": 39.84,
+            "sma_value": 39.8
+          }
+        ],
+        "bearish": [
+          {
+            "ticker": "ALLE",
+            "close": 161.46,
+            "sma_value": 162.56
+          },
+          {
+            "ticker": "AXP",
+            "close": 359.59,
+            "sma_value": 367.59
+          },
+          {
+            "ticker": "BRO",
+            "close": 79.61,
+            "sma_value": 79.75
+          },
+          {
+            "ticker": "CHTR",
+            "close": 206.67,
+            "sma_value": 208.13
+          },
+          {
+            "ticker": "DLR",
+            "close": 157.87,
+            "sma_value": 158.27
+          },
+          {
+            "ticker": "EQR",
+            "close": 60.26,
+            "sma_value": 60.34
+          },
+          {
+            "ticker": "EW",
+            "close": 83.01,
+            "sma_value": 84.88
+          },
+          {
+            "ticker": "L",
+            "close": 104.52,
+            "sma_value": 104.63
+          },
+          {
+            "ticker": "MCD",
+            "close": 306.75,
+            "sma_value": 306.76
+          },
+          {
+            "ticker": "MDLZ",
+            "close": 54.92,
+            "sma_value": 54.92
+          },
+          {
+            "ticker": "MET",
+            "close": 78.32,
+            "sma_value": 78.75
+          },
+          {
+            "ticker": "PCG",
+            "close": 15.7,
+            "sma_value": 15.8
+          },
+          {
+            "ticker": "QCOM",
+            "close": 169.27,
+            "sma_value": 173.17
+          },
+          {
+            "ticker": "RSG",
+            "close": 210.85,
+            "sma_value": 211.35
+          },
+          {
+            "ticker": "TRGP",
+            "close": 174.98,
+            "sma_value": 175.05
+          },
+          {
+            "ticker": "WMB",
+            "close": 59.56,
+            "sma_value": 59.57
+          },
+          {
+            "ticker": "WST",
+            "close": 272.91,
+            "sma_value": 273.64
+          },
+          {
+            "ticker": "ZBH",
+            "close": 91.45,
+            "sma_value": 92.11
+          }
+        ]
+      },
+      "100": {
+        "bullish": [
+          {
+            "ticker": "AMD",
+            "close": 207.69,
+            "sma_value": 205.24
+          },
+          {
+            "ticker": "AVGO",
+            "close": 352.21,
+            "sma_value": 347.18
+          },
+          {
+            "ticker": "DXCM",
+            "close": 70.98,
+            "sma_value": 67.87
+          },
+          {
+            "ticker": "ES",
+            "close": 68.75,
+            "sma_value": 67.9
+          },
+          {
+            "ticker": "LVS",
+            "close": 59.89,
+            "sma_value": 59.24
+          },
+          {
+            "ticker": "MGM",
+            "close": 34.82,
+            "sma_value": 34.77
+          },
+          {
+            "ticker": "NI",
+            "close": 42.39,
+            "sma_value": 42.16
+          },
+          {
+            "ticker": "PSA",
+            "close": 279.2,
+            "sma_value": 278.48
+          },
+          {
+            "ticker": "PWR",
+            "close": 432.66,
+            "sma_value": 423.14
+          },
+          {
+            "ticker": "REG",
+            "close": 70.19,
+            "sma_value": 69.82
+          }
+        ],
+        "bearish": [
+          {
+            "ticker": "AFL",
+            "close": 108.88,
+            "sma_value": 109.23
+          },
+          {
+            "ticker": "FICO",
+            "close": 1631.31,
+            "sma_value": 1651.39
+          },
+          {
+            "ticker": "IP",
+            "close": 42.36,
+            "sma_value": 42.58
+          },
+          {
+            "ticker": "IT",
+            "close": 242.3,
+            "sma_value": 243.64
+          },
+          {
+            "ticker": "KMI",
+            "close": 26.92,
+            "sma_value": 26.93
+          },
+          {
+            "ticker": "MA",
+            "close": 566.28,
+            "sma_value": 566.41
+          },
+          {
+            "ticker": "MAA",
+            "close": 134.23,
+            "sma_value": 135.43
+          },
+          {
+            "ticker": "MET",
+            "close": 78.32,
+            "sma_value": 79.25
+          },
+          {
+            "ticker": "VLTO",
+            "close": 101.9,
+            "sma_value": 102.54
+          },
+          {
+            "ticker": "WMB",
+            "close": 59.56,
+            "sma_value": 59.61
+          }
+        ]
+      },
+      "200": {
+        "bullish": [
+          {
+            "ticker": "LYV",
+            "close": 148.85,
+            "sma_value": 146.27
+          },
+          {
+            "ticker": "NTAP",
+            "close": 107.03,
+            "sma_value": 105.81
+          },
+          {
+            "ticker": "PNW",
+            "close": 89.66,
+            "sma_value": 89.13
+          },
+          {
+            "ticker": "RMD",
+            "close": 257.84,
+            "sma_value": 254.46
+          }
+        ],
+        "bearish": [
+          {
+            "ticker": "BBY",
+            "close": 67.17,
+            "sma_value": 70.33
+          },
+          {
+            "ticker": "BXP",
+            "close": 66.91,
+            "sma_value": 67.97
+          },
+          {
+            "ticker": "CPT",
+            "close": 107.38,
+            "sma_value": 107.82
+          },
+          {
+            "ticker": "EQIX",
+            "close": 783.86,
+            "sma_value": 796.13
+          },
+          {
+            "ticker": "MSFT",
+            "close": 477.18,
+            "sma_value": 479.42
+          },
+          {
+            "ticker": "NKE",
+            "close": 65.64,
+            "sma_value": 65.91
+          },
+          {
+            "ticker": "V",
+            "close": 343.2,
+            "sma_value": 344.42
+          }
+        ]
+      }
+    },
+    "nasdaq": {
+      "50": {
+        "bullish": [
+          {
+            "ticker": "CPRT",
+            "close": 39.92,
+            "sma_value": 39.85
+          },
+          {
+            "ticker": "GILD",
+            "close": 122.6,
+            "sma_value": 122.46
+          },
+          {
+            "ticker": "ORLY",
+            "close": 95.6,
+            "sma_value": 95.53
+          }
+        ],
+        "bearish": [
+          {
+            "ticker": "CHTR",
+            "close": 206.67,
+            "sma_value": 208.13
+          },
+          {
+            "ticker": "MDLZ",
+            "close": 54.92,
+            "sma_value": 54.92
+          },
+          {
+            "ticker": "QCOM",
+            "close": 169.27,
+            "sma_value": 173.17
+          }
+        ]
+      },
+      "100": {
+        "bullish": [
+          {
+            "ticker": "AMD",
+            "close": 207.69,
+            "sma_value": 205.24
+          },
+          {
+            "ticker": "AVGO",
+            "close": 352.21,
+            "sma_value": 347.18
+          },
+          {
+            "ticker": "DXCM",
+            "close": 70.98,
+            "sma_value": 67.87
+          }
+        ],
+        "bearish": [
+          {
+            "ticker": "INSM",
+            "close": 167.72,
+            "sma_value": 169.77
+          }
+        ]
+      },
+      "200": {
+        "bullish": [],
+        "bearish": [
+          {
+            "ticker": "ALNY",
+            "close": 370.91,
+            "sma_value": 375.73
+          },
+          {
+            "ticker": "MSFT",
+            "close": 477.18,
+            "sma_value": 479.42
+          }
+        ]
+      }
+    }
+  }
+}
