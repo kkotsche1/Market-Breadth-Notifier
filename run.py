@@ -419,10 +419,12 @@ def generate_html_dashboard(history_df, sp500_current, nasdaq_current, crossover
         .collapsible-content {{
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease-out;
+            transition: max-height 0.4s ease-out, overflow 0s 0.4s;
         }}
         .collapsible-content.open {{
-            max-height: 2000px;
+            max-height: 10000px;
+            overflow: visible;
+            transition: max-height 0.4s ease-in;
         }}
         .summary-stats {{
             display: flex;
